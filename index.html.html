@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cycle Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #F8F7F5;
+      --surface: #FFFFFF;
+      --border: #E8E5E0;
+      --text: #1A1814;
+      --muted: #8C8680;
+      --accent: #C9796A;
+      --accent-light: #F5EAE8;
+      --accent-mid: #E8B4AC;
+      --period-dot: #C9796A;
+      --predicted-dot: #E8B4AC;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 32px 16px 64px;
+    }
+
+    header {
+      max-width: 480px;
+      margin: 0 auto 40px;
+    }
+
+    h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2rem;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-top: 4px;
+      font-weight: 300;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 480px;
+      margin: 0 auto 20px;
+    }
+
+    .card-title {
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* Next period banner */
+    .next-banner {
+      background: var(--accent-light);
+      border: 1px solid var(--accent-mid);
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 480px;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .days-circle {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: white;
+    }
+
+    .days-num {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.75rem;
+      line-height: 1;
+    }
+
+    .days-label {
+      font-size: 0.6rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.85;
+    }
+
+    .next-info h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.1rem;
+      font-weight: 400;
+      margin-bottom: 4px;
+    }
+
+    .next-info p {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .no-data-banner {
+      background: var(--accent-light);
+      border: 1px solid var(--accent-mid);
+      border-radius: 16px;
+      padding: 20px 24px;
+      max-width: 480px;
+      margin: 0 auto 20px;
+      font-size: 0.875rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* Log form */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .form-group input[type="date"] {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+
+    .form-group input[type="date"]:focus {
+      border-color: var(--accent);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover { opacity: 0.88; }
+
+    /* Calendar */
+    .cal-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .cal-nav button {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      font-size: 1rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cal-nav button:hover { border-color: var(--accent); color: var(--accent); }
+
+    .cal-month {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1rem;
+    }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .cal-day-name {
+      font-size: 0.65rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      text-align: center;
+      padding: 4px 0 8px;
+    }
+
+    .cal-day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 0.78rem;
+      position: relative;
+      cursor: default;
+    }
+
+    .cal-day.empty { background: none; }
+
+    .cal-day.period {
+      background: var(--accent);
+      color: white;
+      font-weight: 500;
+    }
+
+    .cal-day.predicted {
+      background: var(--accent-light);
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .cal-day.today {
+      border: 1.5px solid var(--accent);
+    }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .legend-dot.period { background: var(--accent); }
+    .legend-dot.predicted { background: var(--accent-mid); }
+
+    /* History */
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: var(--bg);
+      border-radius: 10px;
+      font-size: 0.85rem;
+    }
+
+    .history-dates { font-weight: 500; }
+
+    .history-meta {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .history-delete {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0 4px;
+      line-height: 1;
+    }
+
+    .history-delete:hover { color: var(--accent); }
+
+    .empty-state {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+      padding: 16px 0 8px;
+    }
+
+    @media (max-width: 400px) {
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Cycle <em>Tracker</em></h1>
+  <p class="subtitle">Log your period, predict what's next.</p>
+</header>
+
+<!-- Prediction banner -->
+<div id="prediction-banner"></div>
+
+<!-- Log card -->
+<div class="card">
+  <p class="card-title">Log a period</p>
+  <div class="form-row">
+    <div class="form-group">
+      <label for="start-date">Start date</label>
+      <input type="date" id="start-date" />
+    </div>
+    <div class="form-group">
+      <label for="end-date">End date</label>
+      <input type="date" id="end-date" />
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="logPeriod()">Save period</button>
+</div>
+
+<!-- Calendar card -->
+<div class="card">
+  <div class="cal-nav">
+    <button onclick="changeMonth(-1)">&#8249;</button>
+    <span class="cal-month" id="cal-month-label"></span>
+    <button onclick="changeMonth(1)">&#8250;</button>
+  </div>
+  <div class="cal-grid" id="calendar"></div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot period"></div> Period</div>
+    <div class="legend-item"><div class="legend-dot predicted"></div> Predicted</div>
+  </div>
+</div>
+
+<!-- History card -->
+<div class="card">
+  <p class="card-title">History</p>
+  <div class="history-list" id="history-list"></div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'cycletracker_v1';
+
+  // Load/save
+  function load() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  }
+  function save(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+  let cycles = load();
+  let calYear, calMonth;
+
+  function init() {
+    const now = new Date();
+    calYear = now.getFullYear();
+    calMonth = now.getMonth();
+    render();
+  }
+
+  // Parse date string "YYYY-MM-DD" as local date
+  function parseLocal(str) {
+    const [y, m, d] = str.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  function toKey(date) {
+    return date.getFullYear() + '-' +
+      String(date.getMonth() + 1).padStart(2, '0') + '-' +
+      String(date.getDate()).padStart(2, '0');
+  }
+
+  function daysBetween(a, b) {
+    return Math.round((b - a) / 86400000);
+  }
+
+  function formatDate(str) {
+    const d = parseLocal(str);
+    return d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+  }
+
+  // Compute average cycle length from logged data
+  function avgCycleLength() {
+    if (cycles.length < 2) return 28;
+    const sorted = [...cycles].sort((a, b) => a.start.localeCompare(b.start));
+    let total = 0, count = 0;
+    for (let i = 1; i < sorted.length; i++) {
+      const diff = daysBetween(parseLocal(sorted[i - 1].start), parseLocal(sorted[i].start));
+      if (diff > 15 && diff < 50) { total += diff; count++; }
+    }
+    return count > 0 ? Math.round(total / count) : 28;
+  }
+
+  // Build sets of period dates and predicted dates
+  function buildDateSets() {
+    const periodDays = new Set();
+    cycles.forEach(c => {
+      const s = parseLocal(c.start);
+      const e = parseLocal(c.end || c.start);
+      const cur = new Date(s);
+      while (cur <= e) { periodDays.add(toKey(cur)); cur.setDate(cur.getDate() + 1); }
+    });
+
+    const predictedDays = new Set();
+    if (cycles.length >= 1) {
+      const sorted = [...cycles].sort((a, b) => a.start.localeCompare(b.start));
+      const lastStart = parseLocal(sorted[sorted.length - 1].start);
+      const avgLen = avgCycleLength();
+      const avgDur = Math.round(cycles.reduce((s, c) => {
+        const dur = c.end ? daysBetween(parseLocal(c.start), parseLocal(c.end)) + 1 : 5;
+        return s + dur;
+      }, 0) / cycles.length);
+
+      for (let p = 1; p <= 3; p++) {
+        const predStart = new Date(lastStart);
+        predStart.setDate(predStart.getDate() + avgLen * p);
+        const predEnd = new Date(predStart);
+        predEnd.setDate(predEnd.getDate() + avgDur - 1);
+        const cur = new Date(predStart);
+        while (cur <= predEnd) {
+          const key = toKey(cur);
+          if (!periodDays.has(key)) predictedDays.add(key);
+          cur.setDate(cur.getDate() + 1);
+        }
+      }
+    }
+    return { periodDays, predictedDays };
+  }
+
+  // Prediction info
+  function nextPrediction() {
+    if (cycles.length < 1) return null;
+    const sorted = [...cycles].sort((a, b) => a.start.localeCompare(b.start));
+    const lastStart = parseLocal(sorted[sorted.length - 1].start);
+    const avgLen = avgCycleLength();
+    const nextStart = new Date(lastStart);
+    nextStart.setDate(nextStart.getDate() + avgLen);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const daysUntil = daysBetween(today, nextStart);
+    return { date: nextStart, daysUntil, avgLen };
+  }
+
+  function logPeriod() {
+    const start = document.getElementById('start-date').value;
+    const end = document.getElementById('end-date').value;
+    if (!start) { alert('Please enter a start date.'); return; }
+    if (end && end < start) { alert('End date must be after start date.'); return; }
+    cycles.push({ start, end: end || start, id: Date.now() });
+    save(cycles);
+    document.getElementById('start-date').value = '';
+    document.getElementById('end-date').value = '';
+    render();
+  }
+
+  function deleteCycle(id) {
+    cycles = cycles.filter(c => c.id !== id);
+    save(cycles);
+    render();
+  }
+
+  function changeMonth(dir) {
+    calMonth += dir;
+    if (calMonth > 11) { calMonth = 0; calYear++; }
+    if (calMonth < 0) { calMonth = 11; calYear--; }
+    renderCalendar();
+  }
+
+  function render() {
+    renderBanner();
+    renderCalendar();
+    renderHistory();
+  }
+
+  function renderBanner() {
+    const el = document.getElementById('prediction-banner');
+    const pred = nextPrediction();
+    if (!pred) {
+      el.innerHTML = `<div class="no-data-banner">Log your first period to see predictions.</div>`;
+      return;
+    }
+    const label = pred.daysUntil === 0 ? 'today' :
+      pred.daysUntil === 1 ? 'tomorrow' :
+      pred.daysUntil < 0 ? `${Math.abs(pred.daysUntil)}d ago (predicted)` :
+      `in ${pred.daysUntil} days`;
+    const dateStr = pred.date.toLocaleDateString('en-CA', { month: 'long', day: 'numeric' });
+    el.innerHTML = `
+      <div class="next-banner">
+        <div class="days-circle">
+          <span class="days-num">${Math.abs(pred.daysUntil)}</span>
+          <span class="days-label">days</span>
+        </div>
+        <div class="next-info">
+          <h2>Next period ${label}</h2>
+          <p>Expected around ${dateStr}</p>
+          <p style="margin-top:4px">Based on a ${pred.avgLen}-day cycle</p>
+        </div>
+      </div>`;
+  }
+
+  function renderCalendar() {
+    const label = document.getElementById('cal-month-label');
+    const grid = document.getElementById('calendar');
+    const { periodDays, predictedDays } = buildDateSets();
+
+    const monthName = new Date(calYear, calMonth, 1).toLocaleDateString('en-CA', { month: 'long', year: 'numeric' });
+    label.textContent = monthName;
+
+    const today = toKey(new Date());
+    const firstDay = new Date(calYear, calMonth, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+    let html = ['Su','Mo','Tu','We','Th','Fr','Sa'].map(d =>
+      `<div class="cal-day-name">${d}</div>`).join('');
+
+    for (let i = 0; i < firstDay; i++) html += `<div class="cal-day empty"></div>`;
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = `${calYear}-${String(calMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      let cls = 'cal-day';
+      if (periodDays.has(key)) cls += ' period';
+      else if (predictedDays.has(key)) cls += ' predicted';
+      if (key === today) cls += ' today';
+      html += `<div class="${cls}">${d}</div>`;
+    }
+
+    grid.innerHTML = html;
+  }
+
+  function renderHistory() {
+    const el = document.getElementById('history-list');
+    if (cycles.length === 0) {
+      el.innerHTML = `<p class="empty-state">No periods logged yet.</p>`;
+      return;
+    }
+    const sorted = [...cycles].sort((a, b) => b.start.localeCompare(a.start));
+    el.innerHTML = sorted.map(c => {
+      const dur = daysBetween(parseLocal(c.start), parseLocal(c.end || c.start)) + 1;
+      return `
+        <div class="history-item">
+          <div>
+            <div class="history-dates">${formatDate(c.start)} → ${formatDate(c.end || c.start)}</div>
+            <div class="history-meta">${dur} day${dur !== 1 ? 's' : ''}</div>
+          </div>
+          <button class="history-delete" onclick="deleteCycle(${c.id})" title="Delete">×</button>
+        </div>`;
+    }).join('');
+  }
+
+  init();
+</script>
+</body>
+</html>
